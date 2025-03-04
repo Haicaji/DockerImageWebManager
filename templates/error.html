@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>错误</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>错误</h1>
+        <div class="alert alert-danger" role="alert">
+            {{ message }}
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">返回首页</a>
+    </div>
+</body>
+</html>

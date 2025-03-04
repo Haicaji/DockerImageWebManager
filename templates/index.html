@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Docker 镜像管理</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        #upload-progress { display: none; } /* 初始隐藏进度条 */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Docker 镜像管理</h1>
+
+        {% if not docker_connected %}
+        <div class="alert alert-danger" role="alert">
+            <strong>警告!</strong> 无法连接到 Docker 服务。请确保 Docker 服务正在运行。
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <h2>上传 Docker 镜像</h2>
+        <form id="upload-form" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <input type="file" class="form-control-file" id="docker_image" name="docker_image">
+            </div>
+            <button type="submit" class="btn btn-primary">上传并加载镜像</button>
+            <div class="progress" id="upload-progress" style="margin-top: 10px;">
+                <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+        </form>
+
+        <hr>
+
+        <h2>当前 Docker 镜像列表</h2>
+        {% if images %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>镜像 ID</th>
+                    <th>仓库名</th>
+                    <th>标签</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for image in images %}
+                <tr>
+                    <td>{{ image.id }}</td>
+                    <td>{{ image.repo_name }}</td>
+                    <td>{{ image.tag }}</td>
+                    <td>
+                        <a href="/delete_image/{{ image.id }}" class="btn btn-danger btn-sm delete-btn" data-image-name="{{ image.repo_name }}:{{ image.tag }}" data-image-id="{{ image.id }}">删除</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>当前没有 Docker 镜像。</p>
+        {% endif %}
+    </div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // 阻止默认表单提交
+
+            const form = this;
+            const formData = new FormData(form);
+            const progressBar = document.getElementById('upload-progress');
+            const progressBarInner = progressBar.querySelector('.progress-bar');
+
+            progressBar.style.display = 'block'; // 显示进度条
+            progressBarInner.style.width = '0%';
+            progressBarInner.setAttribute('aria-valuenow', 0);
+            progressBarInner.textContent = '0%';
+
+
+            const xhr = new XMLHttpRequest();
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    progressBarInner.style.width = percentComplete.toFixed(0) + '%';
+                    progressBarInner.setAttribute('aria-valuenow', percentComplete.toFixed(0));
+                    progressBarInner.textContent = percentComplete.toFixed(0) + '%';
+                }
+            };
+
+            xhr.onload = function() {
+                progressBar.style.display = 'none'; // 隐藏进度条
+                if (xhr.status === 200) {
+                    window.location.reload(); // 成功后刷新页面
+                } else {
+                    alert('上传失败，请查看控制台错误信息'); // 错误提示
+                    console.error('上传失败:', xhr.status, xhr.responseText);
+                }
+            };
+
+            xhr.onerror = function() {
+                progressBar.style.display = 'none'; // 隐藏进度条
+                alert('上传过程中发生网络错误');
+                console.error('网络错误');
+            };
+
+            xhr.open('POST', '/');
+            xhr.send(formData);
+        });
+
+        // 删除确认
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.preventDefault(); // 阻止默认链接跳转
+                const imageName = this.dataset.imageName;
+                const imageId = this.dataset.imageId;
+                if (confirm(`确定要删除镜像 ${imageName} (ID: ${imageId}) 吗？`)) {
+                    window.location.href = `/delete_image/${imageId}`; // 跳转到删除链接
+                }
+            });
+        });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
